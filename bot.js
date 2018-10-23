@@ -1,9 +1,8 @@
 const Discord = require('discord.js');
-const { Client, RichEmbed } = require('discord.js');
 const client = new Discord.Client();
-let games = []; // list of alls gamers+game+channel
+let players = []; // list of alls gamers who has joined (game,user,channel)
 let first = true; // first message
-let isOpenned = false; // is games open ?
+let isOpenned = false; // is players open ?
 
 client.on('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
@@ -15,7 +14,7 @@ client.on('ready', () => {
 
 function addPlayer(codeParty, msg) {
      
-        games.push([
+        players.push([
             codeParty,
             msg.author,
             msg.channel
@@ -28,6 +27,69 @@ function addPlayer(codeParty, msg) {
 }
 
 /**
+ * Function count for players on same party
+ */
+function count(playersList) {
+    playersList.sort();
+
+    let games = []; // list of all games (game,count)
+
+    var current = null;
+    var cnt = 0;
+    for (var i = 0; i < playersList.length; i++) {
+        if (playersList[i][0][0] != current) {
+            if (cnt > 0) {
+                games.push([
+                    playersList[i-1][0][0],
+                    cnt
+                ]);
+            }
+            current = playersList[i][0][0];
+            cnt = 1;
+        } else {            
+            cnt++;
+        }
+    }
+    if (cnt > 0) {
+        games.push([
+            current,
+            cnt
+        ]);
+    }
+
+    return games;
+
+}
+
+/**
+ * Function to create the fields[] on the great format for embed
+ */
+function createFields(games) {
+    fields = [];
+    descr = "";
+
+    console.log(games);
+
+    for(var i = 0 ; i < games.length ; i++) {
+        for (var j = 0 ; j < players.length ; j++) {
+
+            if (games[i][0] == players[j][0]) 
+                descr += players[j][1] +", ";
+
+        }
+
+        fields.push({ 
+            name: "**" + games[i][0] + "** ( *" + games[i][1] +"* )",
+            value: descr
+        });
+
+        descr = '';
+    }
+
+    return fields
+}
+
+/**
  * Function to close a game trigger by timeout
  * @param Channel channel 
  */
@@ -36,13 +98,26 @@ function closeGame(channel) {
     isOpenned = false;
     first = true;
 
-    const embed = new RichEmbed()
-            .setTitle('Current servers:')
-            .setColor(0x222aba)
-            .setDescription(`${games}`);
+    games = count(players);
+    formattedFields = createFields(games);
 
-    channel.send(embed);
-    games = []; 
+    channel.send({embed: {
+        color: 3447003,
+        title: "Current servers:",
+        //url: "http://google.com",
+        //description: "This is a test embed to showcase what they look like and what they can do.",
+        fields: formattedFields,
+        timestamp: new Date(),
+        footer: {
+          icon_url: client.user.avatarURL,
+          text: "© ButterCorp"
+        }
+      }
+    });
+
+    console.log('[DEBUG] closeGame - Game over');
+
+    while (players.length) { players.pop(); }
 
 }
 
@@ -55,21 +130,23 @@ client.on('message', msg => {
     const args = msg.content.slice("!".length).trim().split(/ +/g);
     const command = args.shift().toLowerCase();
 
-    if (first && command == "join") {
-        if (args !== "" && args.length == 1) {
+    //console.log("[DEBUG] first : " + first + ", command : " + command, "args : " + args);
 
-            first = false;
-            isOpenned = true;
+    if (command == "join" && args !== "" && args.length == 1) {
     
             addPlayer(args, msg);
 
-            setTimeout( function() {
-                closeGame(msg.channel);
-            }, 9000 );
+            if (first) {
+                setTimeout( function() {
+                    closeGame(msg.channel);
+                }, 90000 );
+            }
 
-        console.log("[DEBUG] first : " + first + ", isOpenned : " + isOpenned, "games : " + games);
+            first = false;
+            isOpenned = true;
 
-        }
+            //console.log("[DEBUG] first : " + first + ", isOpenned : " + isOpenned, "players : " + players);
+
     }
 
     //if(isOpenned)     
