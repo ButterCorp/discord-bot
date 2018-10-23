@@ -1,0 +1,11 @@
+{
+    "name": "Brix bot",
+    "version": "0.0.1",
+    "description": "The better bot from BrixPorn",
+    "main": "bot.js",
+    "author": "Brixton the Great",
+    "dependencies": {
+        "discord.js": "^11.4.2",
+        "opusscript": "0.0.6"
+    }
+}
