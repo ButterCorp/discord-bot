@@ -9,18 +9,99 @@ client.on('ready', () => {
 });
 
 /**
+ * Function to know if a user is already in queue
+ * @return boolean 
+ */
+
+function isAlreadyInQueue(user) {
+    for (var i = 0 ; i < players.length ; i++) {
+        if ( players[i][1] == user ) {
+            return players[i];
+        }
+    }
+    
+    return false;
+}
+
+/**
+ * Function to delete a user 
+ * @return boolean 
+ */
+
+function deletePlayer(user) {
+    console.log(players);
+    for (var i = 0 ; i < players.length ; i++) {
+        if ( players[i][1] == user ) {
+            players.splice(i);
+            console.log(players);
+        }
+    }
+    
+    return true;
+}
+
+
+/**
  * Function add message for !join <id>
  */
 
-function addPlayer(codeParty, msg) {
-     
-        players.push([
-            codeParty,
-            msg.author,
-            msg.channel
-        ]);
+function joinPlayer(codeParty, msg) {
 
-        msg.delete()
+    alreadyInQueue = isAlreadyInQueue(msg.author);
+
+    //if bad sequences for codeParty (args != 3)
+    if (codeParty[0].length != 3) {
+        msg.author.send('Hey '+ msg.author +'! You sended a wrong code party ('+codeParty[0]+'). Please enter the 3 latest digit of your game');
+    } else {
+        //if not already in queue => register the player
+        if (!alreadyInQueue) {
+            players.push([
+                codeParty,
+                msg.author,
+                msg.channel
+            ]);
+        } else {
+            msg.author.send('Hey '+ msg.author +'! It\'s look like you are already in queue with the code party (*'+alreadyInQueue[0]+'*). It\'s an error? No panic. Just type `!rejoin <abc>` instead of `!join <abc>`');
+        }
+    }
+
+    msg.delete()
+        .then(message => console.log(`Deleted message from ${message.author.username}`))
+        .catch(console.error);
+
+}
+
+/**
+ * Function add message for !join <id>
+ */
+
+function rejoinPlayer(codeParty, msg) {
+
+    alreadyInQueue = isAlreadyInQueue(msg.author);
+
+    //if bad sequences for codeParty (args != 3)
+    if (codeParty[0].length != 3) {
+        msg.author.send('Hey '+ msg.author +'! You sent a wrong party code ('+codeParty[0]+'). Please enter the 3 latest alpha-num of your game');
+    } else {
+        //if already in queue => re-register the player
+        if (alreadyInQueue) {
+
+            oldRoom = alreadyInQueue[0];
+
+            deletePlayer(msg.author);
+
+            players.push([
+                codeParty,
+                msg.author,
+                msg.channel
+            ]);
+
+        } else {
+            msg.author.send('Hey '+ msg.author +'! It\'s look like you are not already in queue. Please type `!join <abc>` instead of `!rejoin <abc>`');
+        }
+    }
+
+    msg.delete()
         .then(message => console.log(`Deleted message from ${message.author.username}`))
         .catch(console.error);
 
@@ -134,7 +215,7 @@ client.on('message', msg => {
 
     if (command == "join" && args !== "" && args.length == 1) {
     
-            addPlayer(args, msg);
+            joinPlayer(args, msg);
 
             if (first) {
                 setTimeout( function() {
@@ -147,6 +228,8 @@ client.on('message', msg => {
 
             //console.log("[DEBUG] first : " + first + ", isOpenned : " + isOpenned, "players : " + players);
 
+    } else if (command == "rejoin" && args !== "" && args.length == 1) {
+        rejoinPlayer(args, msg);
     }
 
     //if(isOpenned)     
